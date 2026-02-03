@@ -1,7 +1,7 @@
 {
     "name": "thanoseleftherakos/wordpress-boost",
     "description": "An MCP server that provides AI agents with deep context about WordPress codebases",
-    "version": "0.2.4",
+    "version": "1.0.0",
     "type": "library",
     "license": "MIT",
     "keywords": ["wordpress", "mcp", "ai", "development", "wp-cli"],
