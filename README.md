@@ -1,19 +1,37 @@
 # WordPress Boost
 
-An MCP (Model Context Protocol) server that provides AI agents with deep context about WordPress codebases. Inspired by Laravel Boost.
+Boost your WordPress development with AI-powered introspection, security auditing, and intelligent code generation.
+
+Inspired by [Laravel Boost](https://laravel.com/docs/12.x/boost).
 
 ## Overview
 
-WordPress Boost gives AI coding assistants (Claude Code, Cursor, Windsurf, etc.) real-time introspection into WordPress applications, helping them write better WordPress code by understanding:
+WordPress Boost accelerates AI-assisted development by providing deep context about your WordPress codebase, comprehensive security auditing, test data generation, and curated AI guidelines. Works with any AI agent (Claude Code, Cursor, Windsurf, etc.).
 
 - Hooks (actions & filters) and their callbacks
-- Database schema and content
-- Registered post types and taxonomies
-- REST API endpoints
-- ACF field groups and fields
-- WooCommerce configuration
-- Gutenberg blocks and patterns
+- Database schema and queries
+- Post types, taxonomies, and REST endpoints
+- Security vulnerabilities and site hardening status
+- ACF field groups and WooCommerce configuration
+- Test data generation
 - And much more...
+
+## Key Features
+
+### 🔍 Deep WordPress Introspection
+30+ specialized tools to scan hooks, post types, taxonomies, REST endpoints, database schema, and more - giving AI agents the context they need for accurate code generation.
+
+### 🛡️ Security Auditing
+Comprehensive security analysis with code vulnerability scanning (SQL injection, XSS, etc.) and site-level audits that check configuration, updates, permissions, and headers - complete with A-F grading.
+
+### 📝 AI Guidelines & Skills
+Pre-built guidelines and skills installed to your project's `.ai/` directory, teaching AI assistants WordPress best practices for themes, plugins, REST API, Gutenberg, ACF, and WooCommerce.
+
+### 🧪 Test Data Generation
+Generate realistic test posts, pages, users, taxonomy terms, WooCommerce products, and ACF field data using Faker - perfect for development and testing.
+
+### ⚡ Development Tools
+Execute PHP code in WordPress context (wp_shell), run database queries, search documentation, and read error logs - all accessible to your AI assistant.
 
 ## Installation
 
@@ -152,7 +170,14 @@ WordPress Boost includes curated AI guidelines and skills that help AI assistant
 |------|-------------|
 | `urls` | Get all WordPress URLs (home, site, admin, REST, content, etc.) |
 | `environment` | Server environment info (PHP, MySQL, extensions, memory limits) |
-| `security` | Security audit (file permissions, debug settings, SSL, updates) |
+
+### Security Tools
+| Tool | Description |
+|------|-------------|
+| `site_security_audit` | Comprehensive site security audit with scoring (info disclosure, XML-RPC, login security, config, updates, permissions, headers) |
+| `security_audit` | Scan files/directories for code vulnerabilities (SQL injection, XSS, etc.) |
+| `security_check_file` | Check a specific file for security issues with line numbers |
+| `list_security_functions` | List WordPress security functions by category (sanitization, escaping, nonces, etc.) |
 
 ### ACF Integration (when ACF is active)
 | Tool | Description |
@@ -249,5 +274,4 @@ MIT License - see LICENSE file for details.
 
 ## Credits
 
-- Inspired by [Laravel Boost](https://laravel.com/docs/12.x/boost)
 - Built for the [Model Context Protocol](https://modelcontextprotocol.io/)
