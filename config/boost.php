@@ -102,5 +102,8 @@ return [
 
         // Enable Gutenberg block tools
         'gutenberg' => true,
+
+        // Enable WordPress Abilities API tools (WordPress 6.9+)
+        'abilities' => true,
     ],
 ];

@@ -179,12 +179,22 @@ WordPress Boost includes curated AI guidelines and skills that help AI assistant
 | `security_check_file` | Check a specific file for security issues with line numbers |
 | `list_security_functions` | List WordPress security functions by category (sanitization, escaping, nonces, etc.) |
 
+### WordPress Abilities API (WordPress 6.9+)
+| Tool | Description |
+|------|-------------|
+| `abilities_status` | Abilities API availability, registered ability count, plugin namespaces, MCP Adapter status |
+| `list_abilities` | List registered abilities with category/namespace/search filters |
+| `get_ability` | Detailed ability info including input/output JSON schemas and annotations |
+| `list_ability_categories` | Ability categories with descriptions and counts |
+
 ### ACF Integration (when ACF is active)
 | Tool | Description |
 |------|-------------|
-| `list_acf_field_groups` | All registered field groups |
-| `list_acf_fields` | Fields within a group |
+| `list_acf_field_groups` | All registered field groups (includes AI access and Schema.org metadata on ACF 6.8+) |
+| `list_acf_fields` | Fields within a group (includes Schema.org property mappings on ACF 6.8+) |
 | `get_acf_schema` | Full ACF structure for code generation |
+| `get_acf_field` | Detailed field info with usage examples |
+| `get_acf_ai_status` | ACF 6.8+ AI access status, Schema.org config, and registered abilities overview |
 
 ### WooCommerce Integration (when WooCommerce is active)
 | Tool | Description |
