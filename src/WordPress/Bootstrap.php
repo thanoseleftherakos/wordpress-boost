@@ -98,9 +98,12 @@ class Bootstrap
             define('WP_USE_THEMES', false);
         }
 
-        // Mark as CLI request
-        if (!defined('WP_CLI')) {
-            define('WP_CLI', true);
+        // Do NOT define WP_CLI = true. wordpress-boost is not WP-CLI, and
+        // plugins like WooCommerce activate heavy CLI bootstrapping when
+        // they detect that constant, which can hang or crash without the
+        // real WP-CLI framework.  Use a dedicated constant instead.
+        if (!defined('WP_BOOST_CLI')) {
+            define('WP_BOOST_CLI', true);
         }
 
         // Disable cron on CLI to prevent interference
