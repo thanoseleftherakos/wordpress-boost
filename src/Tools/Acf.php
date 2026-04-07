@@ -61,12 +61,19 @@ class Acf extends BaseTool
                 ],
                 ['field']
             ),
+            $this->createToolDefinition(
+                'get_acf_ai_status',
+                'Get ACF AI and Abilities API integration status: which field groups have AI access enabled, Schema.org configuration, and registered abilities',
+            ),
         ];
     }
 
     public function handles(string $name): bool
     {
-        return in_array($name, ['list_acf_field_groups', 'list_acf_fields', 'get_acf_schema', 'get_acf_field']);
+        return in_array($name, [
+            'list_acf_field_groups', 'list_acf_fields', 'get_acf_schema',
+            'get_acf_field', 'get_acf_ai_status',
+        ]);
     }
 
     public function execute(string $name, array $arguments): mixed
@@ -87,6 +94,7 @@ class Acf extends BaseTool
                 $arguments['include_locations'] ?? true
             ),
             'get_acf_field' => $this->getField($arguments['field']),
+            'get_acf_ai_status' => $this->getAiStatus(),
             default => throw new \RuntimeException("Unknown tool: {$name}"),
         };
     }
@@ -94,6 +102,31 @@ class Acf extends BaseTool
     private function isAcfActive(): bool
     {
         return class_exists('ACF') || function_exists('acf_get_field_groups');
+    }
+
+    private function isAcf68OrLater(): bool
+    {
+        return defined('ACF_VERSION') && version_compare(ACF_VERSION, '6.8', '>=');
+    }
+
+    private function isAcfAiEnabled(): bool
+    {
+        if (!$this->isAcf68OrLater()) {
+            return false;
+        }
+
+        return function_exists('acf_get_setting')
+            && acf_get_setting('enable_acf_ai');
+    }
+
+    private function isAcfSchemaEnabled(): bool
+    {
+        if (!$this->isAcf68OrLater()) {
+            return false;
+        }
+
+        return function_exists('acf_get_setting')
+            && acf_get_setting('enable_schema');
     }
 
     private function listFieldGroups(string $status = 'publish'): array
@@ -114,7 +147,7 @@ class Acf extends BaseTool
                 $fieldCount = count($fields);
             }
 
-            $result[] = [
+            $groupInfo = [
                 'key' => $group['key'],
                 'title' => $group['title'],
                 'active' => $group['active'],
@@ -126,13 +159,33 @@ class Acf extends BaseTool
                 'field_count' => $fieldCount,
                 'location_summary' => $this->getLocationSummary($group['location']),
             ];
+
+            // ACF 6.8+: AI access and description
+            if ($this->isAcf68OrLater()) {
+                $groupInfo['allow_ai_access'] = !empty($group['allow_ai_access']);
+                if (!empty($group['ai_description'])) {
+                    $groupInfo['ai_description'] = $group['ai_description'];
+                }
+            }
+
+            $result[] = $groupInfo;
         }
 
-        return [
+        $response = [
             'count' => count($result),
             'acf_version' => defined('ACF_VERSION') ? ACF_VERSION : 'unknown',
             'field_groups' => $result,
         ];
+
+        // ACF 6.8+: Feature flags
+        if ($this->isAcf68OrLater()) {
+            $response['acf_features'] = [
+                'ai_access' => $this->isAcfAiEnabled(),
+                'schema_org' => $this->isAcfSchemaEnabled(),
+            ];
+        }
+
+        return $response;
     }
 
     private function listFields(string $groupIdentifier): array
@@ -399,6 +452,11 @@ class Acf extends BaseTool
                 break;
         }
 
+        // ACF 6.8+: Schema.org property mapping
+        if ($this->isAcfSchemaEnabled() && !empty($field['schema_property'])) {
+            $info['schema_property'] = $field['schema_property'];
+        }
+
         return $info;
     }
 
@@ -443,6 +501,14 @@ class Acf extends BaseTool
             }
         }
 
+        // ACF 6.8+: Schema.org metadata
+        if ($this->isAcfSchemaEnabled()) {
+            $details['schema'] = [
+                'property' => $field['schema_property'] ?? null,
+                'type' => $field['schema_type'] ?? null,
+            ];
+        }
+
         return $details;
     }
 
@@ -455,6 +521,18 @@ class Acf extends BaseTool
             'style' => $group['style'],
             'position' => $group['position'],
         ];
+
+        // ACF 6.8+: AI and Schema metadata
+        if ($this->isAcf68OrLater()) {
+            $schema['allow_ai_access'] = !empty($group['allow_ai_access']);
+            if (!empty($group['ai_description'])) {
+                $schema['ai_description'] = $group['ai_description'];
+            }
+        }
+        if ($this->isAcfSchemaEnabled()) {
+            $schema['schema_type'] = $group['schema_type'] ?? null;
+            $schema['auto_json_ld'] = $group['auto_json_ld'] ?? false;
+        }
 
         if ($includeLocations) {
             $schema['location'] = $group['location'];
@@ -488,6 +566,79 @@ class Acf extends BaseTool
         }
 
         return $summaries;
+    }
+
+    private function getAiStatus(): array
+    {
+        $status = [
+            'acf_version' => defined('ACF_VERSION') ? ACF_VERSION : 'unknown',
+            'acf_68_features' => $this->isAcf68OrLater(),
+        ];
+
+        if (!$this->isAcf68OrLater()) {
+            $status['message'] = 'ACF 6.8+ features (AI access, Schema.org) are not available. Update ACF to 6.8 or later.';
+            return $status;
+        }
+
+        $status['ai_access_enabled'] = $this->isAcfAiEnabled();
+        $status['schema_org_enabled'] = $this->isAcfSchemaEnabled();
+
+        // Scan field groups for AI access and Schema.org
+        $groups = acf_get_field_groups();
+        $aiGroups = [];
+        $schemaGroups = [];
+
+        foreach ($groups as $group) {
+            if (!$group['active']) {
+                continue;
+            }
+
+            if (!empty($group['allow_ai_access'])) {
+                $aiGroups[] = [
+                    'key' => $group['key'],
+                    'title' => $group['title'],
+                    'ai_description' => $group['ai_description'] ?? null,
+                ];
+            }
+
+            if (!empty($group['schema_type'])) {
+                $schemaGroups[] = [
+                    'key' => $group['key'],
+                    'title' => $group['title'],
+                    'schema_type' => $group['schema_type'],
+                ];
+            }
+        }
+
+        $status['field_groups_with_ai'] = [
+            'count' => count($aiGroups),
+            'groups' => $aiGroups,
+        ];
+
+        $status['field_groups_with_schema'] = [
+            'count' => count($schemaGroups),
+            'groups' => $schemaGroups,
+        ];
+
+        // Check if ACF has registered abilities
+        $status['abilities_registered'] = false;
+        if (class_exists('WP_Abilities_Registry')) {
+            $registry = \WP_Abilities_Registry::get_instance();
+            $abilities = $registry->get_all_registered();
+            $acfAbilities = [];
+            foreach ($abilities as $ability) {
+                $name = $ability->get_name();
+                if (str_starts_with($name, 'acf/')) {
+                    $acfAbilities[] = $name;
+                }
+            }
+            $status['abilities_registered'] = !empty($acfAbilities);
+            if (!empty($acfAbilities)) {
+                $status['acf_abilities'] = $acfAbilities;
+            }
+        }
+
+        return $status;
     }
 
     private function getFieldUsageExample(array $field): array

@@ -26,6 +26,7 @@ use WordPressBoost\Tools\DataGenerator;
 use WordPressBoost\Tools\Urls;
 use WordPressBoost\Tools\Environment;
 use WordPressBoost\Tools\Security;
+use WordPressBoost\Tools\Abilities;
 
 /**
  * MCP Server
@@ -82,6 +83,9 @@ class McpServer
         $this->tools['urls'] = new Urls();
         $this->tools['environment'] = new Environment();
         $this->tools['security'] = new Security();
+
+        // Abilities API (WordPress 6.9+) - always registered for discovery
+        $this->tools['abilities'] = new Abilities();
 
         // Conditional tools based on active plugins
         if (class_exists('ACF') || function_exists('acf_get_field_groups')) {
