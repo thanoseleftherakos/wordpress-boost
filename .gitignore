@@ -21,3 +21,8 @@ Thumbs.db
 # Local configuration
 .env
 .env.local
+
+# MCP registry publish credentials (never commit)
+.mcpregistry_github_token
+.mcpregistry_registry_token
+.mcpregistry_*_token
