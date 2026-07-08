@@ -42,6 +42,9 @@ class Bootstrap
             );
         }
 
+        // Protect the JSON-RPC stream before loading WordPress or any plugin code.
+        $this->guardStdout();
+
         // Set up CLI environment
         $this->setupCliEnvironment();
 
@@ -122,6 +125,51 @@ class Bootstrap
         $_SERVER['REQUEST_URI'] = $_SERVER['REQUEST_URI'] ?? '/';
         $_SERVER['REQUEST_METHOD'] = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $_SERVER['SERVER_PROTOCOL'] = $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1';
+    }
+
+    /**
+     * Keep the JSON-RPC stdout stream clean.
+     *
+     * On a stdio MCP server, stdout must carry ONLY newline-delimited JSON-RPC frames.
+     * StdioTransport writes those via fwrite(STDOUT, ...), which bypasses PHP output
+     * buffering, so we can safely wrap the whole process in an output buffer: it captures
+     * anything WordPress or a plugin echoes (the "critical error" HTML page, warnings,
+     * deprecation notices, stray debug output) and reroutes it to STDERR, while the
+     * protocol frames still reach stdout untouched.
+     *
+     * A fatal error (e.g. a plugin referencing a class that isn't loaded) aborts execution
+     * before we can return a JSON-RPC error, so a shutdown handler emits a concise
+     * diagnostic on STDERR and exits non-zero instead of letting WordPress render an HTML
+     * error page into the protocol stream. It is registered before wp-load.php so it runs
+     * ahead of WordPress's own fatal-error handler and short-circuits it.
+     */
+    private function guardStdout(): void
+    {
+        // Chunk size 1: mirror stray output to STDERR promptly and keep buffer memory bounded.
+        ob_start(static function (string $chunk): string {
+            if ($chunk !== '') {
+                fwrite(STDERR, $chunk);
+            }
+            return ''; // never emit buffered output to stdout
+        }, 1);
+
+        register_shutdown_function(static function (): void {
+            $error = error_get_last();
+            $fatalMask = E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR;
+
+            if ($error === null || ($error['type'] & $fatalMask) === 0) {
+                return;
+            }
+
+            fwrite(STDERR, sprintf(
+                "[wordpress-boost] Fatal error during WordPress bootstrap: %s in %s:%d\n",
+                $error['message'],
+                $error['file'],
+                $error['line']
+            ));
+
+            exit(1);
+        });
     }
 
     /**
